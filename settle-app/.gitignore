@@ -1,0 +1,24 @@
+# Xcode
+DerivedData/
+Build/
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+xcuserdata/
+# SwiftPM
+.swiftpm/
+.build/
+# Cocoapods / Carthage / Accio
+Pods/
+Carthage/
+Accio/
+# Artifacts
+*.ipa
+*.dSYM
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+# User files
+*.xcuserstate
+# Logs
+*.log

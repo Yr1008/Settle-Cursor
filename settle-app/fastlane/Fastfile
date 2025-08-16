@@ -5,6 +5,7 @@ platform :ios do
   lane :test do
     scan(
       scheme: "Settle",
+      project: "Settle.xcodeproj",
       devices: ["iPhone 16 Pro"],
       clean: true
     )
@@ -14,6 +15,7 @@ platform :ios do
   lane :beta do
     build_app(
       scheme: "Settle",
+      project: "Settle.xcodeproj",
       export_method: "app-store"
     )
     upload_to_testflight(
