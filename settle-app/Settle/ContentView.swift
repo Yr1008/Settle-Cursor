@@ -410,49 +410,54 @@ struct PollCard: View {
     @ViewBuilder
     private func optionImage(_ opt: PollOption) -> some View {
         let chosen = poll.myChoice == opt.id
-        ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: URL(string: opt.imageURL ?? "")) { img in
-                img.resizable().scaledToFill()
-            } placeholder: {
-                Rectangle().fill(Color.gray.opacity(0.2))
-            }
-            .frame(height: 220)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(alignment: .topTrailing) {
-                if poll.kind == .video {
-                    Image(systemName: mute ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .padding(8)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .padding(8)
+        GeometryReader { geo in
+            let width = (geo.size.width - 12) / 2
+            ZStack(alignment: .bottomLeading) {
+                AsyncImage(url: URL(string: opt.imageURL ?? "")) { img in
+                    img.resizable().scaledToFill()
+                } placeholder: {
+                    Rectangle().fill(Color.gray.opacity(0.2))
                 }
-            }
-            .overlay(
-                LinearGradient(stops: [
-                    .init(color: .clear, location: 0.5),
-                    .init(color: .black.opacity(0.45), location: 1.0)
-                ], startPoint: .top, endPoint: .bottom)
+                .frame(width: width, height: width * 4/5)
+                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            )
+                .overlay(alignment: .topTrailing) {
+                    if poll.kind == .video {
+                        Image(systemName: mute ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .padding(8)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .padding(8)
+                    }
+                }
+                .overlay(
+                    LinearGradient(stops: [
+                        .init(color: .clear, location: 0.5),
+                        .init(color: .black.opacity(0.45), location: 1.0)
+                    ], startPoint: .top, endPoint: .bottom)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                )
 
-            HStack {
-                Text(opt.label).font(.headline).foregroundStyle(.white).shadow(radius: 6)
-                Spacer()
-                Text("\(pct(opt.id))%")
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule())
+                HStack {
+                    Text(opt.label).font(.headline).foregroundStyle(.white).shadow(radius: 6)
+                    Spacer()
+                    Text("\(pct(opt.id))%")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+                .padding(10)
             }
-            .padding(10)
+            .frame(width: width, height: width * 4/5)
+            .contentShape(Rectangle())
+            .scaleEffect(isZooming && chosen ? 1.02 : 1.0)
+            .gesture(LongPressGesture(minimumDuration: 0.15).onChanged { _ in
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = true }
+            }.onEnded { _ in
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = false }
+            })
+            .highPriorityGesture(TapGesture(count: 2).onEnded { vote(opt.id) })
         }
-        .contentShape(Rectangle())
-        .scaleEffect(isZooming && chosen ? 1.02 : 1.0)
-        .gesture(LongPressGesture(minimumDuration: 0.15).onChanged { _ in
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = true }
-        }.onEnded { _ in
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = false }
-        })
-        .onTapGesture(count: 2) { vote(opt.id) } // double-tap to vote
+        .frame(height: 220)
     }
 
     private func vote(_ optionID: UUID) {
