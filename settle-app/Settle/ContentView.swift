@@ -373,11 +373,17 @@ struct PollCard: View {
 
             // Options (image layout – fully rounded, no overlap)
             if poll.kind == .image {
-                HStack(spacing: 12) {
-                    ForEach(poll.options) { opt in
-                        optionImage(opt)
+                GeometryReader { geo in
+                    let spacing: CGFloat = 12
+                    let width = (geo.size.width - spacing) / 2
+                    HStack(spacing: spacing) {
+                        ForEach(poll.options) { opt in
+                            optionImage(opt, width: width)
+                        }
                     }
+                    .frame(width: geo.size.width, height: width * 4/5, alignment: .center)
                 }
+                .frame(height: 220)
                 .padding(8)
             }
             // Footer
@@ -408,56 +414,52 @@ struct PollCard: View {
 
     // single image cell
     @ViewBuilder
-    private func optionImage(_ opt: PollOption) -> some View {
+    private func optionImage(_ opt: PollOption, width: CGFloat) -> some View {
         let chosen = poll.myChoice == opt.id
-        GeometryReader { geo in
-            let width = (geo.size.width - 12) / 2
-            ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: URL(string: opt.imageURL ?? "")) { img in
-                    img.resizable().scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(Color.gray.opacity(0.2))
-                }
-                .frame(width: width, height: width * 4/5)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(alignment: .topTrailing) {
-                    if poll.kind == .video {
-                        Image(systemName: mute ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .padding(8)
-                            .background(.ultraThinMaterial, in: Circle())
-                            .padding(8)
-                    }
-                }
-                .overlay(
-                    LinearGradient(stops: [
-                        .init(color: .clear, location: 0.5),
-                        .init(color: .black.opacity(0.45), location: 1.0)
-                    ], startPoint: .top, endPoint: .bottom)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                )
-
-                HStack {
-                    Text(opt.label).font(.headline).foregroundStyle(.white).shadow(radius: 6)
-                    Spacer()
-                    Text("\(pct(opt.id))%")
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(.ultraThinMaterial, in: Capsule())
-                }
-                .padding(10)
+        ZStack(alignment: .bottomLeading) {
+            AsyncImage(url: URL(string: opt.imageURL ?? "")) { img in
+                img.resizable().scaledToFill()
+            } placeholder: {
+                Rectangle().fill(Color.gray.opacity(0.2))
             }
             .frame(width: width, height: width * 4/5)
-            .contentShape(Rectangle())
-            .scaleEffect(isZooming && chosen ? 1.02 : 1.0)
-            .gesture(LongPressGesture(minimumDuration: 0.15).onChanged { _ in
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = true }
-            }.onEnded { _ in
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = false }
-            })
-            .highPriorityGesture(TapGesture(count: 2).onEnded { vote(opt.id) })
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(alignment: .topTrailing) {
+                if poll.kind == .video {
+                    Image(systemName: mute ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .padding(8)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .padding(8)
+                }
+            }
+            .overlay(
+                LinearGradient(stops: [
+                    .init(color: .clear, location: 0.5),
+                    .init(color: .black.opacity(0.45), location: 1.0)
+                ], startPoint: .top, endPoint: .bottom)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            )
+
+            HStack {
+                Text(opt.label).font(.headline).foregroundStyle(.white).shadow(radius: 6)
+                Spacer()
+                Text("\(pct(opt.id))%")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+            .padding(10)
         }
-        .frame(height: 220)
+        .frame(width: width, height: width * 4/5)
+        .contentShape(Rectangle())
+        .scaleEffect(isZooming && chosen ? 1.02 : 1.0)
+        .gesture(LongPressGesture(minimumDuration: 0.15).onChanged { _ in
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = true }
+        }.onEnded { _ in
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isZooming = false }
+        })
+        .highPriorityGesture(TapGesture(count: 2).onEnded { vote(opt.id) })
     }
 
     private func vote(_ optionID: UUID) {
