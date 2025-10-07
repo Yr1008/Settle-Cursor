@@ -1,4 +1,18 @@
+require 'base64'
+
 default_platform(:ios)
+
+# Returns an App Store Connect API key if env vars are present
+def appstore_api_key_if_available
+  if ENV['APP_STORE_CONNECT_KEY_ID'] && ENV['APP_STORE_CONNECT_ISSUER_ID'] && ENV['APP_STORE_CONNECT_PRIVATE_KEY']
+    app_store_connect_api_key(
+      key_id: ENV['APP_STORE_CONNECT_KEY_ID'],
+      issuer_id: ENV['APP_STORE_CONNECT_ISSUER_ID'],
+      key_content: Base64.strict_decode64(ENV['APP_STORE_CONNECT_PRIVATE_KEY']),
+      in_house: false
+    )
+  end
+end
 
 platform :ios do
   desc "Run unit tests"
@@ -6,22 +20,39 @@ platform :ios do
     scan(
       scheme: "Settle",
       project: "Settle.xcodeproj",
-      devices: ["iPhone 16 Pro"],
+      devices: [ENV.fetch("SIMULATOR_DEVICE", "iPhone 15")],
       clean: true
     )
   end
 
   desc "Upload build to TestFlight"
   lane :beta do
+    api_key = appstore_api_key_if_available
+
+    match(
+      type: "appstore",
+      readonly: is_ci,
+      api_key: api_key
+    )
+
     build_app(
       scheme: "Settle",
       project: "Settle.xcodeproj",
-      export_method: "app-store"
+      export_method: "app-store",
+      xcargs: (ENV['DEVELOPMENT_TEAM'] ? "DEVELOPMENT_TEAM=#{ENV['DEVELOPMENT_TEAM']}" : nil),
+      export_options: {
+        provisioningProfiles: {
+          (ENV['APP_IDENTIFIER'] || "com.example.settle").to_s => "match AppStore #{(ENV['APP_IDENTIFIER'] || "com.example.settle").to_s}"
+        }
+      }
     )
+
     upload_to_testflight(
       skip_waiting_for_build_processing: true,
       distribute_external: true,
-      groups: ["Internal Testers"]
+      groups: ["Internal Testers"],
+      api_key: api_key,
+      changelog: ENV['FL_RELEASE_NOTES']
     )
   end
 end

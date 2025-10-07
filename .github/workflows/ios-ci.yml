@@ -1,0 +1,38 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [ main, master, develop, "releases/**" ]
+    paths:
+      - 'settle-app/**'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'settle-app/**'
+
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: settle-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Generate Xcode project
+        uses: xcodegenapp/xcodegen-action@v3
+        with:
+          version: '2.39.0'
+          spec: 'project.yml'
+
+      - name: Run tests (Fastlane)
+        env:
+          SIMULATOR_DEVICE: iPhone 15
+        run: bundle exec fastlane test
