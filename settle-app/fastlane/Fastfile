@@ -55,4 +55,36 @@ platform :ios do
       changelog: ENV['FL_RELEASE_NOTES']
     )
   end
+
+  desc "Submit build to App Store for release"
+  lane :release do
+    api_key = appstore_api_key_if_available
+
+    match(
+      type: "appstore",
+      readonly: is_ci,
+      api_key: api_key
+    )
+
+    build_app(
+      scheme: "Settle",
+      project: "Settle.xcodeproj",
+      export_method: "app-store",
+      xcargs: (ENV['DEVELOPMENT_TEAM'] ? "DEVELOPMENT_TEAM=#{ENV['DEVELOPMENT_TEAM']}" : nil),
+      export_options: {
+        provisioningProfiles: {
+          (ENV['APP_IDENTIFIER'] || "com.example.settle").to_s => "match AppStore #{(ENV['APP_IDENTIFIER'] || "com.example.settle").to_s}"
+        }
+      }
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      skip_metadata: true,
+      skip_screenshots: true,
+      submit_for_review: true,
+      automatic_release: true,
+      release_notes: ENV['FL_RELEASE_NOTES']
+    )
+  end
 end

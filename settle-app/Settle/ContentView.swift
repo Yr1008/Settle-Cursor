@@ -16,12 +16,14 @@ enum Haptic {
 
 // MARK: - Distance / Time helpers
 private func kmBetween(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
-    let R = 6371.0
-    let dLat = (b.latitude - a.latitude) * .pi/180
-    let dLon = (b.longitude - a.longitude) * .pi/180
-    let lat1 = a.latitude * .pi/180, lat2 = b.latitude * .pi/180
-    let x = sin(dLat/2)*sin(dLat/2) + cos(lat1)*cos(lat2)*sin(dLon/2)*sin(dLon/2)
-    return 2*R*asin(sqrt(x))
+    let earthRadiusKm = 6371.0
+    let dLat = (b.latitude - a.latitude) * .pi / 180
+    let dLon = (b.longitude - a.longitude) * .pi / 180
+    let lat1 = a.latitude * .pi / 180
+    let lat2 = b.latitude * .pi / 180
+    let haversine = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2)
+    let clamped = max(0.0, min(1.0, haversine))
+    return 2 * earthRadiusKm * asin(sqrt(clamped))
 }
 private func hoursFromNow(to end: Date) -> Int {
     max(0, Int(ceil(end.timeIntervalSinceNow/3600)))
@@ -417,10 +419,21 @@ struct PollCard: View {
     private func optionImage(_ opt: PollOption, width: CGFloat) -> some View {
         let chosen = poll.myChoice == opt.id
         ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: URL(string: opt.imageURL ?? "")) { img in
-                img.resizable().scaledToFill()
-            } placeholder: {
-                Rectangle().fill(Color.gray.opacity(0.2))
+            // Support both remote (http/https) and local file URLs
+            if let urlString = opt.imageURL, let url = URL(string: urlString), url.isFileURL {
+                if let image = UIImage(contentsOfFile: url.path) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Rectangle().fill(Color.gray.opacity(0.2))
+                }
+            } else {
+                AsyncImage(url: URL(string: opt.imageURL ?? "")) { img in
+                    img.resizable().scaledToFill()
+                } placeholder: {
+                    Rectangle().fill(Color.gray.opacity(0.2))
+                }
             }
             .frame(width: width, height: width * 4/5)
             .clipped()

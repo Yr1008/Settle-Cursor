@@ -1,4 +1,4 @@
-app_identifier("com.example.settle")
+app_identifier(ENV['APP_IDENTIFIER'] || "com.example.settle")
 
 # Optional when using API key auth:
 team_id(ENV['DEVELOPMENT_TEAM'])
